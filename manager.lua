@@ -1,61 +1,74 @@
--- manager.lua (исправленная версия)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 
 local SETTINGS = {
-    RoomCode = "53267",
+    RoomCode = "5325",  -- Ваш код лобби
     Delays = {
-        AfterCreate = 1,
-        AfterStart = 15,
-        AfterVote = 5,
-        BeforeFarm = 8
+        AfterCreate = 0.5,  -- Задержка после создания лобби (0.5 сек)
+        AfterStart = 15,    -- Задержка после старта игры (можно оставить)
+        AfterVote = 5,      -- Задержка после голосования (если нужно)
+        BeforeFarm = 8      -- Задержка перед загрузкой фарма (если нужно)
     },
     AutofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua"
 }
 
-local function setupAutofarm()
-    -- Создание лобби
-    ReplicatedStorage.MainHandler:FireServer("CreateRoom", "", SETTINGS.RoomCode)
-    warn("Лобби создано. Код: " .. SETTINGS.RoomCode)
-    task.wait(SETTINGS.Delays.AfterCreate)
-
-    -- Запуск игры
-    ReplicatedStorage.MainHandler:FireServer("Start", "")
-    warn("Игра начата")
-    task.wait(SETTINGS.Delays.AfterStart)
-
-    -- Активация BossRush
-    ReplicatedStorage.Vote:FireServer("BossRush")
-    warn("BossRush активирован")
-    task.wait(SETTINGS.Delays.AfterVote)
-
-    -- Подтверждение готовности
-    ReplicatedStorage.GetReadyRemote:FireServer("1", true)
-    warn("Готовность подтверждена")
-
-    -- Загрузка фарма
-    task.wait(SETTINGS.Delays.BeforeFarm)
-    loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
-    warn("Автофарм загружается...")
+-- Функция для вызова MainHandler
+local function callMainHandler(command, ...)
+    local args = {...}
+    ReplicatedStorage.MainHandler:FireServer(table.unpack({
+        {command, table.unpack(args)}
+    }))
 end
 
--- Обработчик перезахода
+-- Создание лобби и запуск игры
+local function setupGame()
+    -- 1. Создаём лобби
+    callMainHandler("CreateRoom", "", SETTINGS.RoomCode)
+    warn("🔄 Лобби создано. Код: " .. SETTINGS.RoomCode)
+    task.wait(SETTINGS.Delays.AfterCreate)
+
+    -- 2. Запускаем игру
+    callMainHandler("Start", "")
+    warn("🚀 Игра начата!")
+    task.wait(SETTINGS.Delays.AfterStart)
+
+    -- 3. Активируем BossRush (если нужно)
+    if ReplicatedStorage:FindFirstChild("Vote") then
+        ReplicatedStorage.Vote:FireServer("BossRush")
+        warn("🔥 BossRush активирован!")
+        task.wait(SETTINGS.Delays.AfterVote)
+    end
+
+    -- 4. Подтверждаем готовность (если нужно)
+    if ReplicatedStorage:FindFirstChild("GetReadyRemote") then
+        ReplicatedStorage.GetReadyRemote:FireServer("1", true)
+        warn("✅ Готовность подтверждена!")
+    end
+
+    -- 5. Загружаем автофарм (если нужно)
+    if SETTINGS.AutofarmURL then
+        task.wait(SETTINGS.Delays.BeforeFarm)
+        loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
+        warn("🤖 Автофарм загружен!")
+    end
+end
+
+-- Автозапуск при входе в игру
 local function onPlayerAdded(player)
-    -- Ждем пока персонаж загрузится
     if player.Character then
-        setupAutofarm()
+        setupGame()
     else
         player.CharacterAdded:Connect(function()
-            task.wait(2) -- Небольшая задержка для стабилизации
-            setupAutofarm()
+            task.wait(1)  -- Задержка для стабилизации
+            setupGame()
         end)
     end
 end
 
--- Подключение обработчиков
+-- Подключаем обработчик
 Players.PlayerAdded:Connect(onPlayerAdded)
 
--- Запуск для текущего игрока (если скрипт запущен после входа в игру)
+-- Если игрок уже в игре (скрипт запущен позже)
 if Players.LocalPlayer then
     onPlayerAdded(Players.LocalPlayer)
 end
