@@ -34,7 +34,7 @@ local ENEMY_PATTERNS = {
     "G toilet", "flying buzzsaw toilet", "Infected Titan Speaker",
     "Malware", "Rocket bathtub toilet", "Flamethrower toilet",
     "Astro assilant toilet", "Astro Detainer", "Giant Magnet",
-    "Vacuum Toilet", "Skull toilet"
+    "Vacuum Toilet", "Skull toilet", "Ginger Toilet"
 }
 
 -- Инициализация
