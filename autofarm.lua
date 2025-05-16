@@ -23,7 +23,7 @@ local SETTINGS = {
     upgradeCheckDelay = 10, -- Задержка между проверками денег
     
     -- Система
-    respawnPlaceId = 18816546575,
+    respawnPlaceId = 18845414266,
     abilityEventName = "TargetShoots"
 }
 
