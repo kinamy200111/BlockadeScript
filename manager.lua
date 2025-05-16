@@ -1,92 +1,96 @@
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 
+-- Настройки
 local SETTINGS = {
     RoomCode = "5325",
     TargetPlaceId = 18845414266, -- ID лобби, куда телепортируемся
+    AutofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua",
     Delays = {
         AfterCreate = 0.5,
         AfterStart = 15,
         AfterVote = 5,
         BeforeFarm = 8
-    },
-    AutofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua"
+    }
 }
 
--- Ключ для сохранения в Datastore
-local DATASTORE_KEY = "AutoFarmEnabled_"..tostring(Players.LocalPlayer.UserId)
+-- Генерируем уникальный ключ для сохранения данных
+local DATA_KEY = "AutoFarm_"..Players.LocalPlayer.UserId
 
--- Проверяем, нужно ли запускать автофарм
-local function shouldRunAutofarm()
-    -- Можно добавить дополнительные проверки здесь
-    return true
-end
-
--- Основная функция настройки игры
-local function setupGame()
-    -- 1. Создаем лобби
+-- Функция для запуска игры и фарма
+local function startAutofarm()
+    -- Создаем лобби
     ReplicatedStorage.MainHandler:FireServer(table.unpack({{"CreateRoom", "", SETTINGS.RoomCode}}))
-    warn("Лобби создано. Код: "..SETTINGS.RoomCode)
+    warn("🔄 Лобби создано. Код: "..SETTINGS.RoomCode)
     task.wait(SETTINGS.Delays.AfterCreate)
 
-    -- 2. Запускаем игру
+    -- Запускаем игру
     ReplicatedStorage.MainHandler:FireServer(table.unpack({{"Start", ""}}))
-    warn("Игра начата")
+    warn("🚀 Игра начата")
     task.wait(SETTINGS.Delays.AfterStart)
 
-    -- 3. Активируем BossRush
+    -- Активируем BossRush (если есть)
     if ReplicatedStorage:FindFirstChild("Vote") then
         ReplicatedStorage.Vote:FireServer("BossRush")
-        warn("BossRush активирован")
+        warn("🔥 BossRush активирован")
         task.wait(SETTINGS.Delays.AfterVote)
     end
 
-    -- 4. Загружаем автофарм
-    if shouldRunAutofarm() then
-        task.wait(SETTINGS.Delays.BeforeFarm)
-        loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
-        warn("Автофарм загружен")
-    end
+    -- Загружаем фарм
+    task.wait(SETTINGS.Delays.BeforeFarm)
+    loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
+    warn("🤖 Автофарм загружен")
 end
 
--- Обработчик телепортации
-local function onTeleport()
-    -- Сохраняем данные для следующего плейса
+-- Функция для телепортации и сохранения данных
+local function teleportToLobby()
     local teleportData = {
         autofarm = true,
-        roomCode = SETTINGS.RoomCode
+        timestamp = os.time()
     }
-    
-    TeleportService:SetTeleportSetting(DATASTORE_KEY, teleportData)
-    
-    -- Телепортируемся в целевой плейс
+
+    -- Сохраняем данные для следующего плейса
+    TeleportService:SetTeleportSetting(DATA_KEY, HttpService:JSONEncode(teleportData))
+
+    -- Телепортируемся
     TeleportService:Teleport(SETTINGS.TargetPlaceId, Players.LocalPlayer)
 end
 
--- Обработчик входа в игру
-local function onPlayerAdded(player)
-    -- Проверяем, были ли сохранены данные
-    local success, teleportData = pcall(function()
-        return TeleportService:GetTeleportSetting(DATASTORE_KEY)
+-- Проверяем сохраненные данные при входе в игру
+local function checkSavedData()
+    local success, savedData = pcall(function()
+        return HttpService:JSONDecode(TeleportService:GetTeleportSetting(DATA_KEY) or "{}")
     end)
-    
-    if success and teleportData and teleportData.autofarm then
-        -- Если данные есть, запускаем автофарм
+
+    if success and savedData.autofarm then
+        -- Если данные есть, запускаем фарм
         task.wait(3) -- Даем время на загрузку
-        setupGame()
+        startAutofarm()
     end
-    
-    -- Обработчик смерти персонажа
-    player.CharacterAdded:Connect(function(character)
-        character:WaitForChild("Humanoid").Died:Connect(onTeleport)
-    end)
+end
+
+-- Обработчик смерти персонажа
+local function onCharacterAdded(character)
+    local humanoid = character:WaitForChild("Humanoid")
+    humanoid.Died:Connect(teleportToLobby)
 end
 
 -- Инициализация
-Players.PlayerAdded:Connect(onPlayerAdded)
+Players.PlayerAdded:Connect(function(player)
+    player.CharacterAdded:Connect(onCharacterAdded)
+    if player.Character then
+        onCharacterAdded(player.Character)
+    end
+end)
+
+-- Проверяем данные при первом запуске
 if Players.LocalPlayer then
-    onPlayerAdded(Players.LocalPlayer)
+    checkSavedData()
+    if Players.LocalPlayer.Character then
+        onCharacterAdded(Players.LocalPlayer.Character)
+    end
 end
 
-warn("Система автофарма инициализирована")
+warn("✅ Система автофарма готова к работе")
