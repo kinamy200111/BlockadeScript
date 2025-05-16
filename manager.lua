@@ -1,45 +1,69 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
 
 -- Настройки
 local SETTINGS = {
-    MAIN_GAME_ID = 18816546575,  -- ID основного игрового плейса
-    LOBBY_ID = 18845414266,      -- ID лобби
-    AutofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua"
+    AutofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua",
+    LOBBY_ID = 18845414266, -- ID лобби
+    MAIN_GAME_ID = 18816546575, -- ID основного плейса
+    ForceLoadEverywhere = true -- Принудительная загрузка везде
 }
 
--- Проверка текущего места
-local function isInMainGame()
-    return game.PlaceId == SETTINGS.MAIN_GAME_ID
-end
+-- Глобальный флаг для отслеживания загрузки
+if not _G.AutoFarmManager then _G.AutoFarmManager = {Loaded = false} end
 
-local function isInLobby()
-    return game.PlaceId == SETTINGS.LOBBY_ID
-end
-
--- Загрузка автофарма (ТОЛЬКО в основном плейсе)
+-- Улучшенная функция загрузки
 local function loadAutofarm()
-    if not isInMainGame() then
-        warn(isInLobby() and "🛑 В лобби автофарм отключен" or "⚠️ Неизвестный плейс: автофарм не запущен")
-        return
+    if _G.AutoFarmManager.Loaded then return end
+    
+    local success, err = pcall(function()
+        loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
+        _G.AutoFarmManager.Loaded = true
+        warn("✅ Автофарм загружен (Принудительный режим)")
+    end)
+    
+    if not success then
+        warn("❌ Ошибка загрузки:", err)
+        task.wait(5)
+        loadAutofarm() -- Повторная попытка через 5 сек
+    end
+end
+
+-- Обработчик игрока
+local function onPlayerAdded(player)
+    -- Автозагрузка без проверки плейса
+    if SETTINGS.ForceLoadEverywhere then
+        loadAutofarm()
+    else
+        -- Стандартная логика (если ForceLoadEverywhere = false)
+        if game.PlaceId == SETTINGS.MAIN_GAME_ID then
+            loadAutofarm()
+        end
     end
 
-    loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
-    warn("✅ Автофарм запущен в основном плейсе")
-    
-    -- Телепортация в лобби при смерти
-    Players.LocalPlayer.CharacterAdded:Connect(function(character)
+    -- Телепортация при смерти
+    player.CharacterAdded:Connect(function(character)
         character:WaitForChild("Humanoid").Died:Connect(function()
             TeleportService:Teleport(SETTINGS.LOBBY_ID)
         end)
     end)
 end
 
--- Автозапуск
-if isInMainGame() then
-    loadAutofarm()
-elseif isInLobby() then
-    warn("🔁 Ожидание перехода в основной плейс...")
-else
-    warn("❓ Текущий плейс не распознан")
+-- Инициализация
+Players.PlayerAdded:Connect(onPlayerAdded)
+if Players.LocalPlayer then
+    onPlayerAdded(Players.LocalPlayer)
 end
+
+-- Автоперезагрузка при телепортации
+TeleportService.LocalPlayerTeleporting:Connect(function()
+    _G.AutoFarmManager.Loaded = false
+    warn("🔄 Подготовка к перезагрузке в новом плейсе...")
+end)
+
+warn(string.format(
+    "🚀 Менеджер автофарма запущен (Режим: %s)",
+    SETTINGS.ForceLoadEverywhere and "ПРИНУДИТЕЛЬНЫЙ" or "СТАНДАРТНЫЙ"
+))
