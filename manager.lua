@@ -1,52 +1,38 @@
--- manager.lua
-local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
+-- manager.lua (для размещения на GitHub)
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local player = Players.LocalPlayer
-local MainHandler = ReplicatedStorage:WaitForChild("MainHandler")
+local Players = game:GetService("Players")
 
 local SETTINGS = {
-    respawnPlaceId = 18845414266,  -- Была опечатка в "respawnPlaced"
-    loadTime = 10,
-    roomCode = "1683968",
-    autofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua"
+    RoomCode = "53267",
+    Delays = {
+        AfterCreate = 1,
+        AfterStart = 15,
+        AfterVote = 5,
+        BeforeFarm = 8
+    },
+    AutofarmURL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/autofarm.lua"
 }
 
-local function createLobby()
-    for i = 1, 3 do
-        pcall(function()
-            MainHandler:FireServer("CreateRoom", "", SETTINGS.roomCode)
-            task.wait(1)
-            MainHandler:FireServer("Start", "")
-            warn("Лобби создано успешно!")
-            return true
-        end)
-        task.wait(2)
-    end
-    return false
-end
+-- Создание лобби
+ReplicatedStorage.MainHandler:FireServer("CreateRoom", "", SETTINGS.RoomCode)
+warn("Лобби создано. Код: " .. SETTINGS.RoomCode)
+task.wait(SETTINGS.Delays.AfterCreate)
 
-local function init()
-    local character = player.Character or player.CharacterAdded:Wait()
-    
-    character:WaitForChild("Humanoid").Died:Connect(function()
-        TeleportService:Teleport(SETTINGS.respawnPlaceId, player)
-        warn("Ожидание загрузки нового режима...")
-        
-        for i = SETTINGS.loadTime, 1, -1 do
-            warn(i.."..")
-            task.wait(1)
-        end
-        
-        if createLobby() then
-            warn("Загрузка автофарма...")
-            loadstring(game:HttpGet(SETTINGS.autofarmURL))()
-        end
-    end)
-end
+-- Запуск игры
+ReplicatedStorage.MainHandler:FireServer("Start", "")
+warn("Игра начата")
+task.wait(SETTINGS.Delays.AfterStart)
 
--- Первый запуск
-init()
-loadstring(game:HttpGet(SETTINGS.autofarmURL))()
-warn("Система автофарма активирована!")
+-- Активация BossRush
+ReplicatedStorage.Vote:FireServer("BossRush")
+warn("BossRush активирован")
+task.wait(SETTINGS.Delays.AfterVote)
+
+-- Подтверждение готовности
+ReplicatedStorage.GetReadyRemote:FireServer("1", true)
+warn("Готовность подтверждена")
+
+-- Загрузка фарма
+task.wait(SETTINGS.Delays.BeforeFarm)
+loadstring(game:HttpGet(SETTINGS.AutofarmURL, true))()
+warn("Автофарм загружается...")
