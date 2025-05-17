@@ -7,6 +7,22 @@ local LOBBY_ID = 18845414266
 local CHECK_INTERVAL = 5
 local LOBBY_SCRIPT_URL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/CreatorLobby.lua"
 local FARM_SCRIPT_URL = "https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/Farm.lua"
+local LOAD_DELAY = 5 -- 5 секунд задержки
+
+-- Принудительная задержка загрузки
+do
+    warn(string.format("[LOADER] Начало загрузки (ожидание %ds)...", LOAD_DELAY))
+    local startTime = os.clock()
+    
+    -- Счетчик обратного отсчета
+    while os.clock() - startTime < LOAD_DELAY do
+        local remaining = LOAD_DELAY - (os.clock() - startTime)
+        warn(string.format("[LOADER] Осталось %.1fs", remaining))
+        task.wait(1)
+    end
+    
+    warn("[LOADER] Загрузка скриптов...")
+end
 
 -- Функция безопасной загрузки
 local function loadScript(url)
@@ -46,3 +62,5 @@ coroutine.wrap(function()
         task.wait(CHECK_INTERVAL)
     end
 end)()
+
+warn("[LOADER] Все компоненты успешно запущены!")
