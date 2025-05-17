@@ -161,12 +161,13 @@ local function autoUpgrade()
     end
 end
 
--- Основной цикл фарма
+-- Основной цикл фарма (ОБНОВЛЕНО - поиск каждую секунду)
 local function farmLoop()
     while STATE.Active do
         local target = findTarget()
         if not target then
-            workspace.Living.ChildAdded:Wait()
+            warn("[SEARCH] Поиск врагов...")
+            task.wait(1) -- Ждем 1 секунду перед повторным поиском
         else
             local orbitConn = orbit(target)
             local attackProcess = task.spawn(autoAttack, target)
