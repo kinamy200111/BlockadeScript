@@ -21,7 +21,7 @@ while true do
 end
 task.wait(3)
 local success, err = pcall(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/kinamy200111/BlockadeScript/CreatorLobby.lua"))()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/kinamy200111/BlockadeScript/Main/CreatorLobby.lua"))()
 end)
 
 if not success then
