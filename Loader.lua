@@ -19,6 +19,7 @@ while true do
     end
     task.wait(CHECK_INTERVAL)
 end
+print ("Загрузка CreatorLobby")
 task.wait(3)
 local success, err = pcall(function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/kinamy200111/BlockadeScript/main/CreatorLobby.lua"))()
