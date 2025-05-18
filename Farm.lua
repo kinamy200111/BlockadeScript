@@ -9,7 +9,7 @@ local CONFIG = {
     -- Настройки фарма
     FARM_HEIGHT = 50,
     FARM_RADIUS = 25,
-    FARM_SPEED = 1.09,
+    FARM_SPEED = 1.00,
     ATTACK_DELAY = 0.5,
     HEAL_TRESHOLD = 700,
     HEAL_COOLDOWN = 0.2,
