@@ -1,4 +1,4 @@
---= Ultimate Autofarm Script v7.8 (Pure Farming) =--
+--= Ultimate Autofarm Script v8.0 (Locked View) =--
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -7,19 +7,28 @@ local VirtualInput = game:GetService("VirtualInputManager")
 -- Конфигурация
 local CONFIG = {
     -- Настройки фарма
-    FARM_HEIGHT = 106,
-    FARM_RADIUS = 30,
-    FARM_SPEED = 0.09,
-    LOOK_ANGLE = 85,
+    FARM_HEIGHT = 50,
+    FARM_RADIUS = 25,
+    FARM_SPEED = 1.09,
     ATTACK_DELAY = 0.5,
-    HEAL_TRESHOLD = 300,
-    HEAL_COOLDOWN = 3,
+    HEAL_TRESHOLD = 700,
+    HEAL_COOLDOWN = 0.2,
     UPGRADE_COST = 500,
     UPGRADE_CHECK_DELAY = 10,
     
     -- Имена событий
     ABILITY_EVENT = "TargetShoots",
     READY_EVENT = "GetReadyRemote",
+    
+    -- Remote Events
+    REMOTE_EVENTS = {
+        "LaserEyeTri",
+        "LMB",
+        "FlingTriSoilder",
+        "SoundWaveTriSoilder",
+        "TVTriSoilder"
+    },
+    REMOTE_DELAY = 1,
     
     -- Авто-действия
     AUTO_VOTE_MODE = "BossRush",
@@ -42,6 +51,20 @@ local player = Players.LocalPlayer
 local character = player.Character or player.CharacterAdded:Wait()
 local rootPart = character:WaitForChild("HumanoidRootPart")
 local abilityEvent = ReplicatedStorage:WaitForChild(CONFIG.ABILITY_EVENT)
+
+-- Система Remote Events
+local function setupRemotes()
+    while STATE.Active do
+        for _, eventName in ipairs(CONFIG.REMOTE_EVENTS) do
+            local event = ReplicatedStorage:FindFirstChild(eventName)
+            if event then
+                event:FireServer()
+            end
+            task.wait(0.1)
+        end
+        task.wait(CONFIG.REMOTE_DELAY)
+    end
+end
 
 -- Anti-AFK система
 local function antiAFK()
@@ -97,7 +120,7 @@ local function findTarget()
     return nil
 end
 
--- Орбитальное движение
+-- Орбитальное движение с фиксированным взглядом на врага
 local function orbit(target)
     local angle = 0
     local connection
@@ -116,7 +139,8 @@ local function orbit(target)
             math.sin(angle) * CONFIG.FARM_RADIUS
         )
         
-        rootPart.CFrame = CFrame.new(orbitPos, targetPos) * CFrame.Angles(math.rad(-CONFIG.LOOK_ANGLE), 0, 0)
+        -- Фиксированный взгляд прямо на врага
+        rootPart.CFrame = CFrame.new(orbitPos, targetPos)
     end)
     
     return connection
@@ -161,13 +185,13 @@ local function autoUpgrade()
     end
 end
 
--- Основной цикл фарма (ОБНОВЛЕНО - поиск каждую секунду)
+-- Основной цикл фарма
 local function farmLoop()
     while STATE.Active do
         local target = findTarget()
         if not target then
             warn("[SEARCH] Поиск врагов...")
-            task.wait(1) -- Ждем 1 секунду перед повторным поиском
+            task.wait(1)
         else
             local orbitConn = orbit(target)
             local attackProcess = task.spawn(autoAttack, target)
@@ -197,6 +221,7 @@ local function initialize()
     table.insert(STATE.Processes, task.spawn(autoUpgrade))
     table.insert(STATE.Processes, task.spawn(autoVote))
     table.insert(STATE.Processes, task.spawn(autoReady))
+    table.insert(STATE.Processes, task.spawn(setupRemotes))
     
     -- Подписка на события
     player.CharacterAdded:Connect(onCharacterAdded)
@@ -206,7 +231,7 @@ local function initialize()
         onCharacterAdded(player.Character)
     end
     
-    warn("[SYSTEM] Чистый автофарм активирован!")
+    warn("[SYSTEM] Автофарм с фиксированным взглядом активирован!")
 end
 
 -- Запуск системы
