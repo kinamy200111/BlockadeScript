@@ -105,7 +105,7 @@ local function findTarget()
         "G toilet", "flying buzzsaw toilet", "Infected Titan Speaker",
         "Malware", "Rocket bathtub toilet", "Flamethrower toilet",
         "Astro assilant toilet", "Astro Detainer", "Giant Magnet",
-        "Vacuum Toilet", "Skull toilet", "Ginger Toilet"
+        "Vacuum Toilet", "Skull toilet", "Ginger Toilet", "Cargo Cleaner Toilet"
     }
     
     for _, enemy in ipairs(living:GetChildren()) do
