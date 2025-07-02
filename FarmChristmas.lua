@@ -7,10 +7,10 @@ local VirtualInput = game:GetService("VirtualInputManager")
 -- Конфигурация
 local CONFIG = {
     -- Настройки фарма
-    FARM_HEIGHT = 10,
+    FARM_HEIGHT = 1,
     FARM_RADIUS = 23,
     FARM_SPEED = 0.09,
-    ATTACK_DELAY = 0.5,
+    ATTACK_DELAY = 0.1,
     HEAL_THRESHOLD = 700,
     HEAL_COOLDOWN = 0.2,
     UPGRADE_COST = 500,
